@@ -1,120 +1,228 @@
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-
-    // 1. Admin Login API
-    if (url.pathname === '/api/admin/login' && request.method === 'POST') {
-      const { email, password } = await request.json();
-      // Database ba KV check (Example purpose static check)
-      if (email === "admin@luxobd.com" && password === "admin123") {
-        return Response.json({ token: "secure_token_v1", message: "Login successful" });
-      }
-      return Response.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    // 2. Frontend HTML & UI (PC & Mobile Responsive + WhatsApp Order + Product Grid)
-    const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Luxo - BD | Premium Skincare & Lifestyle</title>
-        <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-            body { background-color: #f9f9f9; color: #333; }
-            header { background: #fff; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
-            header h1 { font-size: 20px; color: #0b4f34; }
-            .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
-            .product-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                gap: 20px;
-                width: 100%;
-            }
-            .product-card {
-                background: #fff;
-                border: 1px solid #e0e0e0;
-                border-radius: 12px;
-                padding: 15px;
-                text-align: center;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            }
-            .product-card img {
-                width: 100%;
-                height: 180px;
-                object-fit: contain;
-                border-radius: 8px;
-                margin-bottom: 10px;
-            }
-            .product-card h3 { font-size: 15px; font-weight: 600; margin: 10px 0; color: #333; }
-            .product-card .price { font-size: 15px; font-weight: bold; color: #0b4f34; margin-bottom: 12px; }
-            .whatsapp-buy-btn {
-                background-color: #25D366;
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                font-size: 14px;
-                font-weight: bold;
-                border-radius: 6px;
-                cursor: pointer;
-                width: 100%;
-                transition: background 0.3s ease;
-            }
-            .whatsapp-buy-btn:hover { background-color: #1ebe5d; }
-            @media (max-width: 768px) {
-                .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-                .product-card { padding: 10px; }
-                .product-card h3 { font-size: 13px; }
-            }
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1>Luxo - BD</h1>
-            <a href="/admin" style="text-decoration: none; color: #0b4f34; font-weight: bold; font-size: 14px;">Admin Panel</a>
-        </header>
-        <div class="container">
-            <div class="product-grid" id="product-grid">
-                <!-- Products will load dynamically -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxo - BD — Premium Products • Better You</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="bg-black text-white text-xs py-2 text-center font-medium tracking-wide">
+            🇦🇺 Australian Sourced &nbsp;|&nbsp; ✓ 100% Genuine Products &nbsp;|&nbsp; 🚚 Fast Delivery Across Bangladesh
+        </div>
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">LUXO<span class="text-pink-600">-BD</span></h1>
+            <div class="flex items-center space-x-4">
+                <button onclick="openCartModal()" class="relative bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition">
+                    <i class="fa-solid fa-bag-shopping text-xl"></i>
+                    <span id="cart-count" class="absolute -top-1 -right-1 bg-pink-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
+                </button>
             </div>
         </div>
-        <script>
-            const products = [
-                { id: 1, name: "OGX Keratin Smoothing Oil Shampoo", price: "1,450 Tk", image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=300" },
-                { id: 2, name: "OGX Argan Oil of Morocco Conditioner", price: "1,500 Tk", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300" },
-                { id: 3, name: "CeraVe Foaming Cleanser 236ml", price: "1,850 Tk", image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300" },
-                { id: 4, name: "Nivea Stop Pimples Daily Wash Scrub", price: "650 Tk", image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=300" }
-            ];
+    </header>
 
-            const grid = document.getElementById('product-grid');
-            products.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'product-card';
-                card.innerHTML = \`
-                    <img src="\${p.image}" alt="\${p.name}">
-                    <h3>\${p.name}</h3>
-                    <div class="price">\${p.price}</div>
-                    <button class="whatsapp-buy-btn" onclick="orderWhatsApp('\${p.name}', '\${p.price}')">Buy Now (WhatsApp)</button>
-                \`;
-                grid.appendChild(card);
-            });
+    <section class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16 px-4 text-center">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4">Premium Skincare, Cosmetics & Supplements</h2>
+            <p class="text-gray-300 text-lg mb-8">Selected directly from Australia. Better You, Guaranteed.</p>
+            <a href="#shop" class="bg-pink-600 hover:bg-pink-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transition">Shop Collection</a>
+        </div>
+    </section>
 
-            function orderWhatsApp(name, price) {
-                const phone = "8801700000000"; // Apnar WhatsApp number ekhane din
-                const text = \`Hello Luxo-BD, I want to order this product:\\n\\n*Product:* \${name}\\n*Price:* \${price}\\n*Page Link:* \${window.location.href}\`;
-                window.open(\`https://wa.me/\${phone}?text=\${encodeURIComponent(text)}\`, '_blank');
+    <main id="shop" class="max-w-7xl mx-auto px-4 py-12">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <h3 class="text-2xl font-bold text-gray-900 mb-4 md:mb-0">Shop by Category</h3>
+            <div id="category-filters" class="flex flex-wrap gap-2">
+                <button onclick="filterCategory('All')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-black text-white transition">All Products</button>
+                <button onclick="filterCategory('Skincare')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Skincare</button>
+                <button onclick="filterCategory('Cosmetics')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Cosmetics</button>
+                <button onclick="filterCategory('Supplements')" class="cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Supplements</button>
+            </div>
+        </div>
+
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div class="col-span-full text-center py-12 text-gray-500">Loading products...</div>
+        </div>
+    </main>
+
+    <div id="cart-drawer" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-end">
+        <div class="bg-white w-full max-w-md h-full p-6 flex flex-col justify-between shadow-xl overflow-y-auto">
+            <div>
+                <div class="flex justify-between items-center border-b pb-4 mb-4">
+                    <h4 class="text-xl font-bold">Your Cart</h4>
+                    <button onclick="closeCartModal()" class="text-gray-500 hover:text-black text-xl font-bold">&times;</button>
+                </div>
+                <div id="cart-items" class="space-y-4 mb-4"></div>
+            </div>
+            <div>
+                <div class="border-t pt-4 mb-4">
+                    <div class="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span id="cart-total">৳0</span>
+                    </div>
+                </div>
+                <form id="checkout-form" onsubmit="submitOrder(event)" class="space-y-3">
+                    <h5 class="font-semibold text-gray-700">Cash on Delivery Details</h5>
+                    <input type="text" id="cust-name" placeholder="Full Name" required class="w-full p-2 border rounded text-sm">
+                    <input type="text" id="cust-phone" placeholder="Phone Number (e.g. 017xxxxxxxx)" required class="w-full p-2 border rounded text-sm">
+                    <input type="text" id="cust-city" placeholder="City / Region" required class="w-full p-2 border rounded text-sm">
+                    <textarea id="cust-address" placeholder="Full Delivery Address" required class="w-full p-2 border rounded text-sm" rows="2"></textarea>
+                    <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition"><i class="fa-brands fa-whatsapp mr-2"></i> Confirm & Send via WhatsApp</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-400 py-8 text-center text-sm">
+        <p>&copy; 2026 LUXO-BD. All rights reserved. Secure Nationwide Delivery.</p>
+    </footer>
+
+    <script>
+        let allProducts = [];
+        let cart = [];
+        let currentCategory = 'All';
+        let storeConfig = {};
+
+        async function fetchStoreData() {
+            try {
+                let res = await fetch('luxo-data.json');
+                let data = await res.json();
+                allProducts = data.products || [];
+                storeConfig = data.config || {};
+                renderProducts(allProducts);
+            } catch (err) {
+                document.getElementById('product-grid').innerHTML = '<p class="col-span-full text-center text-red-500">Failed to load catalogue.</p>';
             }
-        </script>
-    </body>
-    </html>
-    `;
+        }
 
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-    });
-  },
-};
+        function renderProducts(products) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
+            const filtered = currentCategory === 'All' ? products : products.filter(p => p.category === currentCategory);
+
+            if(filtered.length === 0) {
+                grid.innerHTML = '<p class="col-span-full text-center py-8 text-gray-500">No products found.</p>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                let priceHtml = p.price !== null ? `<span class="text-lg font-bold text-gray-900">৳${p.price}</span>` : `<span class="text-sm font-semibold text-pink-600 bg-pink-50 px-2 py-1 rounded">Coming Soon</span>`;
+                let btnHtml = p.price !== null ? `<button onclick="addToCart('${p.id}')" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded text-sm font-medium transition">Add to Cart</button>` : `<button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm font-medium cursor-not-allowed">Coming Soon</button>`;
+
+                grid.innerHTML += `
+                    <div class="bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs uppercase tracking-wider text-pink-600 font-bold">${p.category}</span>
+                            <h4 class="font-bold text-gray-900 mt-1">${p.name}</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">${p.size || ''}</p>
+                            <p class="text-sm text-gray-600 mt-2">${p.description}</p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t flex justify-between items-center">
+                            <div>${priceHtml}</div>
+                            <div>${btnHtml}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                if(btn.textContent.includes(cat) || (cat === 'All' && btn.textContent === 'All Products')) {
+                    btn.className = 'cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-black text-white transition';
+                } else {
+                    btn.className = 'cat-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition';
+                }
+            });
+            renderProducts(allProducts);
+        }
+
+        function addToCart(id) {
+            let prod = allProducts.find(p => p.id === id);
+            if(!prod) return;
+            let existing = cart.find(i => i.id === id);
+            if(existing) { existing.qty++; } else { cart.push({ id: prod.id, name: prod.name, price: prod.price, size: prod.size, qty: 1 }); }
+            updateCartUI();
+            openCartModal();
+        }
+
+        function updateCartUI() {
+            let count = cart.reduce((sum, i) => sum + i.qty, 0);
+            document.getElementById('cart-count').textContent = count;
+            let container = document.getElementById('cart-items');
+            container.innerHTML = '';
+            let total = 0;
+
+            if(cart.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">Your cart is empty.</p>';
+                document.getElementById('cart-total').textContent = '৳0';
+                return;
+            }
+
+            cart.forEach(item => {
+                let lineTotal = item.price * item.qty;
+                total += lineTotal;
+                container.innerHTML += `
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <div>
+                            <h6 class="font-bold text-sm">${item.name}</h6>
+                            <p class="text-xs text-gray-500">৳${item.price} × ${item.qty}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-sm">৳${lineTotal}</span>
+                            <button onclick="removeFromCart('${item.id}')" class="text-red-500 hover:text-red-700 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('cart-total').textContent = '৳' + total;
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            updateCartUI();
+        }
+
+        function openCartModal() { document.getElementById('cart-drawer').classList.remove('hidden'); }
+        function closeCartModal() { document.getElementById('cart-drawer').classList.add('hidden'); }
+
+        function submitOrder(e) {
+            e.preventDefault();
+            if(cart.length === 0) { alert('Your cart is empty!'); return; }
+
+            let name = document.getElementById('cust-name').value;
+            let phone = document.getElementById('cust-phone').value;
+            let city = document.getElementById('cust-city').value;
+            let address = document.getElementById('cust-address').value;
+            let orderId = 'LUXO-' + Math.floor(100000 + Math.random() * 900000);
+
+            let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            let itemsText = cart.map(i => `• ${i.name} (${i.size || ''}) x ${i.qty} = ৳${i.price * i.qty}`).join('\n');
+
+            let msg = `🛍️ *New Order: ${orderId}*\n\n` +
+                      `👤 *Customer:* ${name}\n` +
+                      `📞 *Phone:* ${phone}\n` +
+                      `🏙️ *City:* ${city}\n` +
+                      `📍 *Address:* ${address}\n\n` +
+                      `🛒 *Items:*\n${itemsText}\n\n` +
+                      `💰 *Total:* ৳${total}\n` +
+                      `🚚 *Payment:* Cash on Delivery`;
+
+            let whatsappNum = storeConfig.whatsapp_number || "8801831833590";
+            let url = `https://wa.me/${whatsappNum}?text=` + encodeURIComponent(msg);
+
+            window.open(url, '_blank');
+            alert('Order generated successfully! Redirecting to WhatsApp to send order details.');
+            cart = [];
+            updateCartUI();
+            closeCartModal();
+            document.getElementById('checkout-form').reset();
+        }
+
+        fetchStoreData();
+    </script>
+</body>
+</html>
