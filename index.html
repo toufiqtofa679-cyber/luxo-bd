@@ -1,0 +1,120 @@
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // 1. Admin Login API
+    if (url.pathname === '/api/admin/login' && request.method === 'POST') {
+      const { email, password } = await request.json();
+      // Database ba KV check (Example purpose static check)
+      if (email === "admin@luxobd.com" && password === "admin123") {
+        return Response.json({ token: "secure_token_v1", message: "Login successful" });
+      }
+      return Response.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+
+    // 2. Frontend HTML & UI (PC & Mobile Responsive + WhatsApp Order + Product Grid)
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Luxo - BD | Premium Skincare & Lifestyle</title>
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+            body { background-color: #f9f9f9; color: #333; }
+            header { background: #fff; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+            header h1 { font-size: 20px; color: #0b4f34; }
+            .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+            .product-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 20px;
+                width: 100%;
+            }
+            .product-card {
+                background: #fff;
+                border: 1px solid #e0e0e0;
+                border-radius: 12px;
+                padding: 15px;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            }
+            .product-card img {
+                width: 100%;
+                height: 180px;
+                object-fit: contain;
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }
+            .product-card h3 { font-size: 15px; font-weight: 600; margin: 10px 0; color: #333; }
+            .product-card .price { font-size: 15px; font-weight: bold; color: #0b4f34; margin-bottom: 12px; }
+            .whatsapp-buy-btn {
+                background-color: #25D366;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 6px;
+                cursor: pointer;
+                width: 100%;
+                transition: background 0.3s ease;
+            }
+            .whatsapp-buy-btn:hover { background-color: #1ebe5d; }
+            @media (max-width: 768px) {
+                .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+                .product-card { padding: 10px; }
+                .product-card h3 { font-size: 13px; }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Luxo - BD</h1>
+            <a href="/admin" style="text-decoration: none; color: #0b4f34; font-weight: bold; font-size: 14px;">Admin Panel</a>
+        </header>
+        <div class="container">
+            <div class="product-grid" id="product-grid">
+                <!-- Products will load dynamically -->
+            </div>
+        </div>
+        <script>
+            const products = [
+                { id: 1, name: "OGX Keratin Smoothing Oil Shampoo", price: "1,450 Tk", image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=300" },
+                { id: 2, name: "OGX Argan Oil of Morocco Conditioner", price: "1,500 Tk", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300" },
+                { id: 3, name: "CeraVe Foaming Cleanser 236ml", price: "1,850 Tk", image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300" },
+                { id: 4, name: "Nivea Stop Pimples Daily Wash Scrub", price: "650 Tk", image: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=300" }
+            ];
+
+            const grid = document.getElementById('product-grid');
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = \`
+                    <img src="\${p.image}" alt="\${p.name}">
+                    <h3>\${p.name}</h3>
+                    <div class="price">\${p.price}</div>
+                    <button class="whatsapp-buy-btn" onclick="orderWhatsApp('\${p.name}', '\${p.price}')">Buy Now (WhatsApp)</button>
+                \`;
+                grid.appendChild(card);
+            });
+
+            function orderWhatsApp(name, price) {
+                const phone = "8801700000000"; // Apnar WhatsApp number ekhane din
+                const text = \`Hello Luxo-BD, I want to order this product:\\n\\n*Product:* \${name}\\n*Price:* \${price}\\n*Page Link:* \${window.location.href}\`;
+                window.open(\`https://wa.me/\${phone}?text=\${encodeURIComponent(text)}\`, '_blank');
+            }
+        </script>
+    </body>
+    </html>
+    `;
+
+    return new Response(html, {
+      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+    });
+  },
+};
